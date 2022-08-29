@@ -1,4 +1,5 @@
 # Gofig - a simple (but powerful) config library
+![Coverage](https://img.shields.io/badge/Coverage-78.8%25-brightgreen)
 
 This was created mainly to use for my own projects, but felt like a good thing to share ❤️
 
