@@ -4,6 +4,10 @@ This was created mainly to use for my own projects, but felt like a good thing t
 
 ## Usage
 
+```shell
+go get -u github.com/darklam/gofig@latest
+```
+
 This example should explain pretty much everything
 
 ```go
@@ -91,6 +95,19 @@ providers in the future.
 
 You can also create custom ones in your code by implementing the interfaces/Provider
 interface (more documentation there). Please do create a PR to add a new provider if you think it might be useful.
+
+## Testing
+
+This module uses moq for mocks, so the first thing you need is to install moq
+```shell
+go install github.com/matryer/moq@v0.2.7
+```
+Currently using v0.2.7 so keep it the same in case you dug this up 5 years later and there are breaking changes
+
+Then just run 
+```shell
+go test -v ./...
+```
 
 ## Contributing
 
