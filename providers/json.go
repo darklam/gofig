@@ -2,6 +2,7 @@ package providers
 
 import (
 	"errors"
+	"fmt"
 	json "github.com/titanous/json5"
 	"os"
 )
@@ -32,7 +33,7 @@ func (jp JSONProvider) GetValue(fieldPath []string) (string, error) {
 	for _, path := range fieldPath {
 		m, ok := currentValue.(map[string]interface{})
 		if !ok {
-			return "", errors.New("received invalid path or JSON file")
+			return "", nil
 		}
 
 		currentValue, ok = m[path]
@@ -42,12 +43,12 @@ func (jp JSONProvider) GetValue(fieldPath []string) (string, error) {
 	}
 
 	if currentValue == nil {
-		return "", errors.New("key not found in JSON")
+		return "", nil
 	}
 
 	strValue, ok := currentValue.(string)
 	if !ok {
-		return "", errors.New("got invalid value")
+		return "", errors.New(fmt.Sprintf("got invalid value: %+v", currentValue))
 	}
 
 	return strValue, nil

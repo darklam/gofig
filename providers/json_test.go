@@ -2,6 +2,7 @@ package providers
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"testing"
 
@@ -62,13 +63,13 @@ func TestJSONProvider_GetValue(t *testing.T) {
 			name:        "Non-string value",
 			fieldPath:   []string{"key6"},
 			expected:    "",
-			expectedErr: errors.New("got invalid value"),
+			expectedErr: errors.New(fmt.Sprintf("got invalid value: %+v", 123)),
 		},
 		{
 			name:        "Invalid key",
 			fieldPath:   []string{"nonexistent"},
 			expected:    "",
-			expectedErr: errors.New("key not found in JSON"),
+			expectedErr: nil,
 		},
 	}
 
