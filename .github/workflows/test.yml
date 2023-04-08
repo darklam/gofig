@@ -33,7 +33,7 @@ jobs:
         run: |
           go install github.com/matryer/moq@v0.2.7
           ./generate_mocks.sh
-          go test -v ./... -covermode=count -coverprofile=coverage.out
+          go test -v $(go list ./... | grep -v tools) -covermode=count -coverprofile=coverage.out
           go tool cover -func=coverage.out -o=coverage.out
 
       - name: Go Coverage Badge
