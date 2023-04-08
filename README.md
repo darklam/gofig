@@ -1,15 +1,16 @@
 # Gofig - a simple (but powerful) config library
-![Coverage](https://img.shields.io/badge/Coverage-78.8%25-brightgreen)
+![Coverage](https://img.shields.io/badge/Coverage-92.7%25-brightgreen)
 
-This was created mainly to use for my own projects, but felt like a good thing to share ❤️
+Gofig is a lightweight and extendable configuration library for Go projects. Originally created for personal use,
+it has been shared to benefit the community. ❤️
 
 ## Usage
 
 ```shell
-go get -u github.com/darklam/gofig@latest
+go get -u github.com/darklam/gofig@v1.0.0
 ```
 
-This example should explain pretty much everything
+This example demonstrates the main features of Gofig:
 
 ```go
 package main
@@ -17,34 +18,34 @@ package main
 import (
 	"github.com/darklam/gofig"
 	"github.com/darklam/gofig/providers"
-	"os"
 )
 
 type PgConfig struct {
-	Username string `env:"PG_USERNAME" key:"USERNAME"`
-	Password string `env:"PG_PASSWORD" key:"PASSWORD"`
-	Host     string `env:"PG_HOST" key:"HOST"`
-	Port     string `env:"PG_PORT" key:"PORT"`
+	Username string `prop:"username"`
+	Password string `prop:"password"`
+	Host     string `prop:"host"`
+	Port     string `prop:"port"`
 }
 
 type Config struct {
-	Port      string    `env:"PORT" default:"3000"`
-	Postgres  *PgConfig `provider:"vault" mountPath:"kv" secretPath:"postgres"`
-	RedisHost string    `env:"REDIS_HOST" default:"localhost" provider:"vault" mountPath:"kv" secretPath:"redis" key:"HOST"`
+	Port      string    `prop:"port" default:"3000"`
+	Postgres  *PgConfig `prop:"postgres"`
+	RedisHost string    `prop:"redis.host" default:"localhost"`
 }
 
 func main() {
 	fig := gofig.NewGofig()
 	
-	vaultAddress := os.Getenv("VAULT_ADDR")
-	roleId := os.Getenv("ROLE_ID")
-	secretId := os.Getenv("SECRET_ID")
-	vault, err := providers.NewVaultProviderAppRole(vaultAddress, roleId, secretId)
+	json5Provider, err := providers.NewJSONProvider("local.json5")
 	if err != nil {
 		panic(err)
-        }
+    }
 	
-	fig.RegisterProvider(vault)
+	fig.RegisterProvider(json5Provider)
+	
+	envProvider := providers.NewEnvProvider()
+	
+	fig.RegisterProvider(envProvider)
 	
 	cfg := new(Config)
 	
@@ -52,63 +53,73 @@ func main() {
 
 	if err != nil {
 		panic(err)
-        }
+	}
 	
     // The cfg variable now has all the fields populated
 }
 ```
 
+## General information
+
+The v1 version of the library has been improved to support JSON (and JSON5) sources and offer better extensibility.
+
+However, it has also become more opinionated about naming properties in the configuration. This decision helps keep the code simple without sacrificing extendability.
+
+
 ## Available tags
 
-* **provider**: The name of the provider responsible for populating this field
-* **env**: The name of the environment variable to populate the field with
+* **prop**: Specifies the name of the property which will be used to fetch its value from the different providers
 * **default**: The default value of the field
 
 **_You must use at least one of these tags in the struct fields (unless if the field is a struct pointer)_**
 
-All other tags are provider specific.
-
 ## Field types
 
-The only supported types are string and a pointer to a struct. If a string then it will be treated
-as a field to populate. If a struct pointer it will be replaced by an instance of the struct with its 
-fields populated according to the tags of its fields.
+Gofig supports two field types: string and a pointer to a struct.
 
-Fields for which the value was not found by anything will be empty strings.
+If a field is a string, it will be treated as a field to populate.
 
-Structs are always instantiated.
+If a field is a struct pointer, it will be replaced by an instance of the struct with its fields populated according to the tags of its fields.
 
-All fields will be populated recursively. GO nuts!
+Fields with no value found will have empty strings. Structs are always instantiated. All fields will be populated recursively.
 
-## Tag precedence
 
-* default
-* env
-* provider
 
-This means that if an env variable is found it will replace the default value and if a value from the
-provider is retrieved it will replace the env or default values.
+## Provider precedence
+
+The default value has the lowest precedence if set.
+
+The order in which providers are registered determines precedence. For example, if you register providers in this order:
+
+- env
+- json
+
+
+Values fetched from JSON will replace the values from the environment, which in turn will replace the defaults where set.
 
 ## Adding more providers
 
-Currently, there's only the Vault provider with AppRole auth which is what I needed, but I might add more
-providers in the future.
+Built-in providers include:
 
-You can also create custom ones in your code by implementing the interfaces/Provider
-interface (more documentation there). Please do create a PR to add a new provider if you think it might be useful.
+- env
+- json
+
+To create custom providers, implement the interfaces/Provider interface in your code (see the interface documentation for more information).
+
+If you think a new provider might be useful, please create a PR.
 
 ## Testing
 
-This module uses moq for mocks, so the first thing you need is to install moq
+You can run:
 ```shell
-go install github.com/matryer/moq@v0.2.7
+go generate ./...
+go test $(go list ./... | grep -v tools)
 ```
-Currently using v0.2.7 so keep it the same in case you dug this up 5 years later and there are breaking changes
 
-Then just run 
-```shell
-go test -v ./...
-```
+Alternatively you can just run the run_tests.sh script.
+
+The tools directory is excluded, as it only contains imports to manage the versions of tools and
+it would just error out.
 
 ## Contributing
 
