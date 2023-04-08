@@ -1,6 +1,9 @@
 package gofig
 
-import "reflect"
+import (
+	"reflect"
+	"strings"
+)
 
 func pop[T any](slice *[]T) T {
 	length := len(*slice)
@@ -9,13 +12,30 @@ func pop[T any](slice *[]T) T {
 	return last
 }
 
-func getVisibleFieldPairs(t reflect.Type, parent *reflect.StructField, parentValue reflect.Value) []*fieldPair {
+func getFields(t reflect.Type, parent *Field, parentValue reflect.Value) []Field {
 	visible := reflect.VisibleFields(t)
 
-	fields := make([]*fieldPair, len(visible))
+	fields := make([]Field, len(visible))
 
 	for i, field := range visible {
-		fields[i] = &fieldPair{field: field, parent: parent, parentValue: parentValue}
+		currentPath := make([]string, 0)
+
+		if parent != nil {
+			parentPath := parent.fullPath
+			for _, f := range parentPath {
+				currentPath = append(currentPath, f)
+			}
+		}
+
+		fieldPath := field.Tag.Get("prop")
+
+		parts := strings.Split(fieldPath, ".")
+
+		for _, part := range parts {
+			currentPath = append(currentPath, part)
+		}
+
+		fields[i] = Field{field: field, parentValue: parentValue, fullPath: currentPath}
 	}
 
 	return fields

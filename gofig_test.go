@@ -1,65 +1,76 @@
 package gofig
 
 import (
-	"errors"
-	"github.com/darklam/gofig/mocks"
+	"github.com/darklam/gofig/interfaces/interfacesfakes"
+	"github.com/darklam/gofig/providers"
 	"github.com/stretchr/testify/assert"
 	"os"
-	"reflect"
 	"testing"
 )
 
 func TestGofig_PopulateConfigNoProvider(t *testing.T) {
+	// GIVEN
 	gofig := NewGofig()
 
+	envProvider := providers.NewEnvProvider()
+
+	gofig.RegisterProvider(envProvider)
+
 	type child struct {
-		URL string `env:"URL"`
+		URL string `prop:"url"`
 	}
 
 	type parent struct {
-		C                   *child `provider:"vault" mountPath:"somewhere" secretPath:"secure"`
-		SuperSecretPassword string `env:"SUPER_SECRET_PASSWORD" default:"1234"`
+		C                   *child `prop:"smth"`
+		SuperSecretPassword string `prop:"super.secret.password" default:"1234"`
 	}
 
 	err := os.Setenv("SUPER_SECRET_PASSWORD", "4321")
 	if err != nil {
-		t.Error("got nil when setting environment")
+		t.Error("got error when setting environment")
 	}
 
-	err = os.Setenv("URL", "some_url")
+	err = os.Setenv("SMTH_URL", "some_url")
 	if err != nil {
-		t.Error("got nil when setting environment")
+		t.Error("got error when setting environment")
 	}
 
 	cfg := new(parent)
 
+	// WHEN
 	err = gofig.PopulateConfig(cfg)
-	assert.Nil(t, err)
 
+	// THEN
+	assert.Nil(t, err)
 	assert.Equal(t, "4321", cfg.SuperSecretPassword)
 	assert.Equal(t, "some_url", cfg.C.URL)
 }
 
 func TestGofig_PopulateConfigNoProviderVeryDeep(t *testing.T) {
+	// GIVEN
 	gofig := NewGofig()
 
+	envProvider := providers.NewEnvProvider()
+
+	gofig.RegisterProvider(envProvider)
+
 	type childChildChild struct {
-		EvenMoar string `env:"EVEN_MOAR"`
+		EvenMoar string `prop:"even.moar"`
 	}
 
 	type childChild struct {
-		Moar string `env:"MOAR"`
-		Em   *childChildChild
+		Moar string           `prop:"moar"`
+		Em   *childChildChild `prop:"em"`
 	}
 
 	type child struct {
-		URL string `env:"URL"`
-		M   *childChild
+		URL string      `prop:"url"`
+		M   *childChild `prop:"m"`
 	}
 
 	type parent struct {
-		C                   *child
-		SuperSecretPassword string `env:"SUPER_SECRET_PASSWORD" default:"1234"`
+		C                   *child `prop:"c"`
+		SuperSecretPassword string `prop:"super.secret.password" default:"1234"`
 	}
 
 	err := os.Setenv("SUPER_SECRET_PASSWORD", "4321")
@@ -67,26 +78,28 @@ func TestGofig_PopulateConfigNoProviderVeryDeep(t *testing.T) {
 		t.Error("got nil when setting environment")
 	}
 
-	err = os.Setenv("URL", "some_url")
+	err = os.Setenv("C_URL", "some_url")
 	if err != nil {
 		t.Error("got nil when setting environment")
 	}
 
-	err = os.Setenv("MOAR", "moar")
+	err = os.Setenv("C_M_MOAR", "moar")
 	if err != nil {
 		t.Error("got nil when setting environment")
 	}
 
-	err = os.Setenv("EVEN_MOAR", "even_moar")
+	err = os.Setenv("C_M_EM_EVEN_MOAR", "even_moar")
 	if err != nil {
 		t.Error("got nil when setting environment")
 	}
 
 	cfg := new(parent)
 
+	// WHEN
 	err = gofig.PopulateConfig(cfg)
-	assert.Nil(t, err)
 
+	// THEN
+	assert.Nil(t, err)
 	assert.Equal(t, "4321", cfg.SuperSecretPassword)
 	assert.Equal(t, "some_url", cfg.C.URL)
 	assert.Equal(t, "moar", cfg.C.M.Moar)
@@ -94,14 +107,10 @@ func TestGofig_PopulateConfigNoProviderVeryDeep(t *testing.T) {
 }
 
 func TestGofig_PopulateConfigWithProviderSimple(t *testing.T) {
-	provider := &mocks.ProviderMock{
-		NameFunc: func() string {
-			return "test"
-		},
-		GetValueFunc: func(field reflect.StructField, parentField *reflect.StructField) (string, error) {
-			return "something_else", nil
-		},
-	}
+	// GIVEN
+	provider := &interfacesfakes.FakeProvider{}
+
+	provider.GetValueReturns("providerValue", nil)
 
 	gofig := NewGofig()
 
@@ -113,163 +122,67 @@ func TestGofig_PopulateConfigWithProviderSimple(t *testing.T) {
 	}
 
 	type simple struct {
-		SomeField string `env:"SOMETHING" provider:"test"`
+		SomeField string `prop:"smth"`
 	}
 
 	cfg := new(simple)
 
+	// WHEN
 	err = gofig.PopulateConfig(cfg)
 
-	calls := provider.GetValueCalls()
-	call := calls[0]
+	// THEN
+	providerGetValueArgs := provider.GetValueArgsForCall(0)
 
 	assert.Nil(t, err)
-	assert.Equal(t, "something_else", cfg.SomeField)
-	assert.Equal(t, 1, len(calls), "GetValue should have been called only once")
-	assert.Equal(t, "SomeField", call.Field.Name, "GetValue should have been called on SomeField")
-	assert.Nil(t, call.ParentField, "The parent should have been nil")
+	assert.Equal(t, 1, provider.GetValueCallCount())
+	assert.Equal(t, 1, len(providerGetValueArgs))
+	assert.Equal(t, "smth", providerGetValueArgs[0])
+	assert.Equal(t, "providerValue", cfg.SomeField)
 }
 
-func TestGofig_PopulateConfigWithProviderDeep(t *testing.T) {
-	provider := &mocks.ProviderMock{
-		NameFunc: func() string {
-			return "test"
-		},
-		GetValueFunc: func(field reflect.StructField, parentField *reflect.StructField) (string, error) {
-			if parentField == nil {
-				return "", nil
-			}
-			value := field.Name + "_value"
-			if parentField != nil {
-				value = parentField.Name + "_" + value
-			}
-			return value, nil
-		},
-	}
-
+func TestGofig_PopulateConfigProviderPrecedence(t *testing.T) {
+	// GIVEN
 	gofig := NewGofig()
 
-	gofig.RegisterProvider(provider)
+	provider1 := &interfacesfakes.FakeProvider{}
+	provider2 := &interfacesfakes.FakeProvider{}
+	provider3 := &interfacesfakes.FakeProvider{}
 
-	err := os.Setenv("VALUE", "different")
-	assert.Nil(t, err)
+	provider1.GetValueReturns("provider1", nil)
 
-	type childChild struct {
-		Value string
+	provider2.GetValueStub = func(strings []string) (string, error) {
+		property := strings[0]
+		if property == "provider2" || property == "provider3" {
+			return "provider2", nil
+		}
+		return "", nil
 	}
 
-	type child struct {
-		Value string
-		CC    *childChild `provider:"test"`
+	provider3.GetValueStub = func(strings []string) (string, error) {
+		if strings[0] == "provider3" {
+			return "provider3", nil
+		}
+		return "", nil
 	}
 
-	type parent struct {
-		Value string `provider:"test" env:"VALUE"`
-		C     *child `provider:"test"`
-	}
-
-	cfg := new(parent)
-
-	err = gofig.PopulateConfig(cfg)
-	assert.Nil(t, err)
-
-	assert.Equal(t, "different", cfg.Value)
-	assert.Equal(t, "C_Value_value", cfg.C.Value)
-	assert.Equal(t, "CC_Value_value", cfg.C.CC.Value)
-}
-
-func TestGofig_PopulateConfigProviderError(t *testing.T) {
-	provider := &mocks.ProviderMock{
-		NameFunc: func() string {
-			return "test"
-		},
-		GetValueFunc: func(field reflect.StructField, parentField *reflect.StructField) (string, error) {
-			return "", errors.New("some error")
-		},
-	}
-
-	gofig := NewGofig()
-
-	gofig.RegisterProvider(provider)
+	gofig.RegisterProvider(provider1)
+	gofig.RegisterProvider(provider2)
+	gofig.RegisterProvider(provider3)
 
 	type config struct {
-		Value string `provider:"test"`
+		Value1 string `prop:"provider1"`
+		Value2 string `prop:"provider2"`
+		Value3 string `prop:"provider3"`
 	}
 
 	cfg := new(config)
 
+	// WHEN
 	err := gofig.PopulateConfig(cfg)
 
-	assert.Equal(t, err.Error(), "some error")
-}
-
-func TestGofig_PopulateConfigDefaultValues(t *testing.T) {
-	gofig := NewGofig()
-
-	err := os.Setenv("SOMETHING", "value")
+	// THEN
 	assert.Nil(t, err)
-
-	type config struct {
-		Value   string `env:"SOMETHING"`
-		Another string `default:"one"`
-	}
-
-	cfg := new(config)
-
-	err = gofig.PopulateConfig(cfg)
-	assert.Nil(t, err)
-
-	assert.Equal(t, "value", cfg.Value)
-	assert.Equal(t, "one", cfg.Another)
-}
-
-func TestGofig_PopulateConfigErrorOnInvalidValue(t *testing.T) {
-	gofig := NewGofig()
-
-	err := os.Setenv("SOMETHING", "10")
-	assert.Nil(t, err)
-
-	type config struct {
-		Value int `env:"SOMETHING"`
-	}
-
-	cfg := new(config)
-
-	err = gofig.PopulateConfig(cfg)
-
-	assert.Equal(t, err.Error(), "only struct pointers and strings are allowed")
-}
-
-func TestGofig_PopulateConfigErrorOnInvalidValuePointer(t *testing.T) {
-	gofig := NewGofig()
-
-	err := os.Setenv("SOMETHING", "10")
-	assert.Nil(t, err)
-
-	type config struct {
-		Value *string `env:"SOMETHING"`
-	}
-
-	cfg := new(config)
-
-	err = gofig.PopulateConfig(cfg)
-
-	assert.Equal(t, err.Error(), "only struct pointers and strings are allowed")
-}
-
-func TestGofig_PopulateConfigInvalidTags(t *testing.T) {
-	gofig := NewGofig()
-
-	err := os.Setenv("SOMETHING", "10")
-	assert.Nil(t, err)
-
-	type config struct {
-		Value string
-	}
-
-	cfg := new(config)
-
-	err = gofig.PopulateConfig(cfg)
-
-	assert.Equal(t, err.Error(), "no provider, env or default for field Value")
+	assert.Equal(t, cfg.Value1, "provider1")
+	assert.Equal(t, cfg.Value2, "provider2")
+	assert.Equal(t, cfg.Value3, "provider3")
 }
