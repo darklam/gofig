@@ -1,5 +1,5 @@
 # Gofig - a simple (but powerful) config library
-![Coverage](https://img.shields.io/badge/Coverage-3-red)
+![Coverage](https://img.shields.io/badge/Coverage-92.7%25-brightgreen)
 
 Gofig is a lightweight and extendable configuration library for Go projects. Originally created for personal use,
 it has been shared to benefit the community. ❤️
