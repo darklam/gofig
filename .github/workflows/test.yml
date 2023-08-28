@@ -30,7 +30,7 @@ jobs:
             ${{ runner.os }}-go-
 
       - name: Run Test
-        run: "./run_tests.sh coverage"
+        run: "./run_tests.sh -cover -gen"
 
       - name: Go Coverage Badge
         uses: tj-actions/coverage-badge-go@v2
