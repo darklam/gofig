@@ -13,6 +13,7 @@ fi
 
 if [[ "$coverage" = true ]]; then
   go test ./... -covermode=count -coverprofile=coverage.out
+  go tool cover -func=coverage.out -o=coverage.out
 else
   go test ./...
 fi
