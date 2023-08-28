@@ -1,11 +1,13 @@
 package gofig
 
 import (
-	"github.com/darklam/gofig/interfaces/interfacesfakes"
-	"github.com/darklam/gofig/providers"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
+
+	"github.com/darklam/gofig/mocks/interfaces"
+	"github.com/darklam/gofig/providers"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestGofig_PopulateConfigNoProvider(t *testing.T) {
@@ -108,9 +110,9 @@ func TestGofig_PopulateConfigNoProviderVeryDeep(t *testing.T) {
 
 func TestGofig_PopulateConfigWithProviderSimple(t *testing.T) {
 	// GIVEN
-	provider := &interfacesfakes.FakeProvider{}
+	provider := interfaces.NewMockProvider(t)
 
-	provider.GetValueReturns("providerValue", nil)
+	provider.On("GetValue", []string{"smth"}).Return("providerValue", nil)
 
 	gofig := NewGofig()
 
@@ -131,12 +133,9 @@ func TestGofig_PopulateConfigWithProviderSimple(t *testing.T) {
 	err = gofig.PopulateConfig(cfg)
 
 	// THEN
-	providerGetValueArgs := provider.GetValueArgsForCall(0)
+	provider.AssertNumberOfCalls(t, "GetValue", 1)
 
 	assert.Nil(t, err)
-	assert.Equal(t, 1, provider.GetValueCallCount())
-	assert.Equal(t, 1, len(providerGetValueArgs))
-	assert.Equal(t, "smth", providerGetValueArgs[0])
 	assert.Equal(t, "providerValue", cfg.SomeField)
 }
 
@@ -144,26 +143,18 @@ func TestGofig_PopulateConfigProviderPrecedence(t *testing.T) {
 	// GIVEN
 	gofig := NewGofig()
 
-	provider1 := &interfacesfakes.FakeProvider{}
-	provider2 := &interfacesfakes.FakeProvider{}
-	provider3 := &interfacesfakes.FakeProvider{}
+	provider1 := interfaces.NewMockProvider(t)
+	provider2 := interfaces.NewMockProvider(t)
+	provider3 := interfaces.NewMockProvider(t)
 
-	provider1.GetValueReturns("provider1", nil)
+	provider1.On("GetValue", mock.Anything).Return("provider1", nil)
 
-	provider2.GetValueStub = func(strings []string) (string, error) {
-		property := strings[0]
-		if property == "provider2" || property == "provider3" {
-			return "provider2", nil
-		}
-		return "", nil
-	}
+	provider2.On("GetValue", []string{"provider2"}).Return("provider2", nil)
+	provider2.On("GetValue", []string{"provider3"}).Return("provider2", nil)
+	provider2.On("GetValue", mock.Anything).Return("", nil)
 
-	provider3.GetValueStub = func(strings []string) (string, error) {
-		if strings[0] == "provider3" {
-			return "provider3", nil
-		}
-		return "", nil
-	}
+	provider3.On("GetValue", []string{"provider3"}).Return("provider3", nil)
+	provider3.On("GetValue", mock.Anything).Return("", nil)
 
 	gofig.RegisterProvider(provider1)
 	gofig.RegisterProvider(provider2)

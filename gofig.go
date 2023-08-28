@@ -2,8 +2,9 @@ package gofig
 
 import (
 	"errors"
-	"github.com/darklam/gofig/interfaces"
 	"reflect"
+
+	"github.com/darklam/gofig/interfaces"
 )
 
 // Gofig is the struct containing the registered providers and responsible for populating the provided configuration
