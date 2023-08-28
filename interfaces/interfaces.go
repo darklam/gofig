@@ -1,8 +1,6 @@
 // Package interfaces includes common interfaces used in the project
 package interfaces
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
-
 // Provider is the interface that every provider must implement to be used with Gofig
 //
 //counterfeiter:generate . Provider
