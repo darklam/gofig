@@ -1,0 +1,13 @@
+with-expecter: true
+packages:
+  github.com/darklam/gofig/interfaces:
+    # place your package-specific config here
+    interfaces:
+      # select the interfaces you want mocked
+      Provider:
+        config:
+          filename: "mock_provider.go"
+          dir: "mocks/interfaces"
+          mockname: "Mock{{.InterfaceName}}"
+          outpkg: "interfaces"
+
