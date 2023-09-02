@@ -103,23 +103,46 @@ Built-in providers include:
 
 - env
 - json
+- vault
 
 To create custom providers, implement the interfaces/Provider interface in your code (see the interface documentation for more information).
 
 If you think a new provider might be useful, please create a PR.
 
+## Vault provider
+
+This allows fetching secrets from HashiCorp Vault.
+
+Options:
+
+- Url: The URL of the vault instance
+- RequestTimeout: Specifies the request timeout for the Vault client - default: 0 (no timeout)
+- AppRoleAuth: The options for authenticating using an AppRole
+- KubernetesAuth: The options for authenticating using Kubernetes
+- MountPath: The mountPath of the secret engine
+- Path: The path of a secret
+
+At least one of (AppRoleAuth, KubernetesAuth) must be specified.
+
+Example options for path and mountPath:
+
+Suppose there's a KV engine in the path kv/ and a secret named database.
+
+The options would be: mountPath: "kv", path: "database".
+
+The secret values must be strings and the keys will be resolved similarly to the ENV provider 
+(all uppercase and joined with '_')
+
 ## Testing
 
 You can run:
 ```shell
-go generate ./...
-go test $(go list ./... | grep -v tools)
+./run_tests.sh
 ```
 
-Alternatively you can just run the run_tests.sh script.
-
-The tools directory is excluded, as it only contains imports to manage the versions of tools and
-it would just error out.
+This script accepts 2 options:
+1. -cover - This enables the generation of a coverprofile for the tests
+2. -gen - This generates the mocks before running the tests (accomplished by using the generate_mocks.sh script)
 
 ## Contributing
 
