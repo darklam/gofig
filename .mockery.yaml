@@ -1,9 +1,7 @@
 with-expecter: true
 packages:
   github.com/darklam/gofig/interfaces:
-    # place your package-specific config here
     interfaces:
-      # select the interfaces you want mocked
       Provider:
         config:
           filename: "mock_provider.go"
@@ -11,3 +9,11 @@ packages:
           mockname: "Mock{{.InterfaceName}}"
           outpkg: "interfaces"
 
+  github.com/darklam/gofig/providers:
+    interfaces:
+      VaultClienter:
+        config:
+          filename: "mock_vault_clienter.go"
+          dir: "mocks/providers"
+          mockname: "Mock{{.InterfaceName}}"
+          outpkg: "providers"
