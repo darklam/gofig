@@ -7,7 +7,7 @@ it has been shared to benefit the community. ❤️
 ## Usage
 
 ```shell
-go get -u github.com/darklam/gofig@v1.0.0
+go get -u github.com/darklam/gofig@v1.2.0
 ```
 
 This example demonstrates the main features of Gofig:
