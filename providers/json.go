@@ -3,8 +3,11 @@ package providers
 import (
 	"errors"
 	"fmt"
-	json "github.com/titanous/json5"
+	"io"
+	"io/fs"
 	"os"
+
+	json "github.com/titanous/json5"
 )
 
 type JSONProvider struct {
@@ -13,6 +16,27 @@ type JSONProvider struct {
 
 func NewJSONProvider(filePath string) (*JSONProvider, error) {
 	contents, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	parsed := map[string]interface{}{}
+
+	err = json.Unmarshal(contents, &parsed)
+	if err != nil {
+		return nil, err
+	}
+
+	return &JSONProvider{parsedFile: parsed}, nil
+}
+
+func NewJSONProviderFromFs(fs fs.FS, filePath string) (*JSONProvider, error) {
+	file, err := fs.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	contents, err := io.ReadAll(file)
 	if err != nil {
 		return nil, err
 	}

@@ -1,0 +1,6 @@
+{
+  some: "value",
+  nested: {
+    key: "value",
+  },
+}

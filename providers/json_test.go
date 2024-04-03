@@ -1,6 +1,7 @@
 package providers
 
 import (
+	"embed"
 	"errors"
 	"fmt"
 	"os"
@@ -80,4 +81,20 @@ func TestJSONProvider_GetValue(t *testing.T) {
 			assert.Equal(t, test.expectedErr, err)
 		})
 	}
+}
+
+//go:embed test.config.json5
+var config embed.FS
+
+func TestNewJSONProviderFromFs(t *testing.T) {
+	jp, err := NewJSONProviderFromFs(config, "test.config.json5")
+	assert.Nil(t, err)
+
+	value, err := jp.GetValue([]string{"some"})
+	assert.Nil(t, err)
+	assert.Equal(t, "value", value)
+
+	value, err = jp.GetValue([]string{"nested", "key"})
+	assert.Nil(t, err)
+	assert.Equal(t, "value", value)
 }
